@@ -1,0 +1,270 @@
+```markdown
+# Replit AI Prompt: Full‐Stack FBA Cryptocurrency Scaffold (Flask + Vanilla JS)
+
+You are Replit AI, an expert blockchain architect and full‐stack Python/Flask engineer. Your mission is to generate a **turn‐key**, **production-ready** Replit project that implements a **Federated Byzantine Agreement (FBA)**–based cryptocurrency inspired by Nano/Banano. The output must include every file, folder, and code snippet needed to:
+
+– Launch a Flask‐based FBA node  
+– Serve a responsive, single-page dashboard with Vanilla JS + Bootstrap  
+– Persist and query a ledger in SQLite (migratable to PostgreSQL)  
+– Provide CLI tools, unit tests, CI, docs, and future exchange hooks
+
+Deliver **all** files and content in one cohesive markdown block, organized by path.
+
+---  
+## 1. Project Root & Tooling  
+
+**1.1** replit.nix  
+```nix
+{ pkgs }: with pkgs;
+mkShell {
+  buildInputs = [ python310 git openssl pkgconfig ];
+  shellHook = ''
+    export FLASK_APP=app.py
+    export FLASK_ENV=development
+  '';
+}
+```
+
+**1.2** requirements.txt  
+```
+Flask==2.2.5
+SQLAlchemy==1.4.50
+cryptography==40.0.0
+Flask-RESTful==0.3.9
+Flask-SQLAlchemy==3.0.4
+Flask-Cors==3.0.10
+PyNaCl==1.6.1
+pytest==7.4.0
+requests==2.31.0
+python-dotenv==1.0.0
+websockets==11.0.3
+```
+
+**1.3** Dockerfile  
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 5000 6000
+CMD ["flask", "run", "--host=0.0.0.0"]
+```
+
+**1.4** .env (example)  
+```dotenv
+NODE_ID=node1
+BOOTSTRAP_PEERS=peer1.example.com:6000,peer2.example.com:6000
+DB_URL=sqlite:///fba_chain.db
+SECRET_KEY=your-secret-key
+```
+
+---  
+## 2. Directory Layout & Core Modules  
+```
+/                  # project root
+├── app.py         # Flask entrypoint & node launcher
+├── config.py      # load .env, define Config classes
+├── replit.nix
+├── requirements.txt
+├── Dockerfile
+├── README.md
+├── .env.example
+│
+├── node/          # FBA networking & consensus
+│   ├── __init__.py
+│   ├── fba.py     # quorum slice, vote logic, decision algorithm
+│   ├── peer.py    # peer discovery, gossip, WebSocket client/server
+│   └── network.py # tie together gossiper, vote broadcaster
+│
+├── ledger/        # persistent ledger & models
+│   ├── __init__.py
+│   ├── models.py  # SQLAlchemy: AccountChain, Transaction, Vote
+│   ├── repository.py  # CRUD + reconciliation, migrations stub
+│   └── reconcile.py    # fork resolution, ledger sync
+│
+├── wallet/        # key & transaction helpers
+│   ├── __init__.py
+│   ├── keys.py    # ed25519 seed ↔ keypair, BIP-39 style mnemonic
+│   ├── address.py# fba_ address generation & checksum
+│   └── tx.py      # build, sign, serialize tx objects
+│
+├── api/           # Flask REST & WebSocket endpoints
+│   ├── __init__.py
+│   ├── v1/        # v1 blueprint
+│   │   ├── __init__.py
+│   │   ├── balance.py
+│   │   ├── send.py
+│   │   ├── history.py
+│   │   ├── vote.py
+│   │   └── peers.py
+│   └── docs.py    # Swagger UI generation
+│
+├── exchange/      # future exchange & monetization hooks
+│   ├── __init__.py
+│   ├── client.py  # ExchangeClient interface (REST/WebSocket)
+│   └── mock.py    # stubbed CCXT-like adapter
+│
+├── static/        # front-end assets
+│   ├── css/
+│   │   ├── theme.css  # light + dark mode
+│   │   └── bootstrap.min.css
+│   └── js/
+│       ├── api.js     # AJAX/WebSocket wrapper
+│       └── ui.js      # DOM bindings, polling logic
+│
+├── templates/     # Jinja2 pages
+│   └── index.html
+│
+└── tests/         # pytest suite
+    ├── conftest.py
+    ├── test_fba.py
+    ├── test_ledger.py
+    ├── test_wallet.py
+    └── test_api.py
+```
+
+---  
+## 3. app.py (Entrypoint)  
+```python
+from flask import Flask
+from flask_cors import CORS
+from config import Config
+from api import create_api_blueprint
+from node.network import FBANetwork
+from ledger.repository import LedgerRepository
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    CORS(app)
+    # register API
+    app.register_blueprint(create_api_blueprint(), url_prefix="/api/v1")
+    return app
+
+if __name__ == "__main__":
+    app = create_app()
+    # initialize ledger & network node
+    ledger = LedgerRepository(app.config["DB_URL"])
+    node = FBANetwork(ledger, peers=app.config["BOOTSTRAP_PEERS"])
+    node.start()  # start gossip + consensus thread
+    app.run(host="0.0.0.0", port=5000)
+```
+
+---  
+## 4. config.py  
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    DB_URL = os.getenv("DB_URL", "sqlite:///fba_chain.db")
+    BOOTSTRAP_PEERS = os.getenv("BOOTSTRAP_PEERS", "").split(",")
+    FBA_QUORUM = float(os.getenv("FBA_QUORUM", "0.8"))
+    POW_DIFFICULTY = int(os.getenv("POW_DIFFICULTY", "20"))
+```
+
+---  
+## 5. Sample API Endpoint (balance.py)  
+```python
+from flask import Blueprint, jsonify, abort
+from ledger.repository import LedgerRepository
+
+bp = Blueprint("balance", __name__)
+
+@bp.route("/balance/<address>", methods=["GET"])
+def get_balance(address):
+    ledger = LedgerRepository.current()
+    if not ledger.is_valid_address(address):
+        abort(400, description="Invalid address")
+    balance = ledger.get_balance(address)
+    return jsonify({"address": address, "balance": balance})
+```
+
+---  
+## 6. Front-End (templates/index.html)  
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FBA Coin Dashboard</title>
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/theme.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container py-4">
+    <h1 class="mb-4">FBA Coin</h1>
+    <div id="wallet-setup" class="mb-5">
+      <!-- create/import wallet UI -->
+    </div>
+    <div id="dashboard" class="d-none">
+      <div><strong>Address:</strong> <span id="address"></span></div>
+      <div><strong>Balance:</strong> <span id="balance"></span></div>
+      <canvas id="qr-code"></canvas>
+      <hr>
+      <h3>Send Transaction</h3>
+      <form id="send-form">
+        <input type="text" id="to" placeholder="Recipient Address" required>
+        <input type="number" id="amount" placeholder="Amount" required>
+        <button class="btn btn-primary">Send</button>
+      </form>
+      <hr>
+      <h3>Activity</h3>
+      <table class="table">
+        <thead><tr><th>Time</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="activity"></tbody>
+      </table>
+    </div>
+  </div>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/ui.js"></script>
+</body>
+</html>
+```
+
+---  
+## 7. Testing & CI  
+
+**.github/workflows/ci.yml**  
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with: python-version: 3.10
+    - name: Install deps
+      run: pip install -r requirements.txt
+    - name: Lint
+      run: flake8 .
+    - name: Test
+      run: pytest --maxfail=1 --disable-warnings -q
+```
+
+---  
+## 8. README.md Outline  
+
+1. **Project Overview**  
+2. **Architecture Diagram** (ASCII/mermaid)  
+3. **Quickstart**  
+   - Clone, `replit.nix`, `.env`, `flask run`  
+4. **CLI Tools**  
+5. **API Reference & Swagger**  
+6. **Front-end Usage**  
+7. **Exchange Integration**  
+8. **Testing & CI**  
+9. **Deployment (Docker)**  
+10. **Contribution Guide**  
+
+---
+
+**Result:**  
+A complete Replit project scaffold with every file, code snippet, and config needed to run an FBA‐based crypto node plus dashboard—production-ready, fully tested, and extensible for exchange integration and monetization.
