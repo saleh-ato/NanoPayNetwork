@@ -14,6 +14,11 @@ class FBAWallet {
         document.getElementById('confirm-import').addEventListener('click', () => this.importWallet());
         document.getElementById('cancel-import').addEventListener('click', () => this.hideImportForm());
         
+        // Seed modal events
+        document.getElementById('seed-confirmed').addEventListener('change', (e) => this.toggleSeedConfirmation(e.target.checked));
+        document.getElementById('confirm-seed-saved').addEventListener('click', () => this.hideSeedModal());
+        document.getElementById('show-seed-btn').addEventListener('click', () => this.showSeedModal());
+        
         // Transaction events
         document.getElementById('send-form').addEventListener('submit', (e) => this.sendTransaction(e));
         document.getElementById('faucet-btn').addEventListener('click', () => this.requestFaucet());
@@ -35,9 +40,8 @@ class FBAWallet {
             
             if (result.success) {
                 this.currentWallet = result.data;
-                this.showWalletDashboard();
+                this.showSeedModal();
                 this.showToast('Wallet generated successfully!', 'success');
-                this.startRefreshTimer();
             } else {
                 this.showToast('Error generating wallet: ' + result.error, 'error');
             }
@@ -338,6 +342,39 @@ class FBAWallet {
 
     hideLoading() {
         // Loading handled by toast auto-hide
+    }
+
+    showSeedModal() {
+        if (!this.currentWallet || !this.currentWallet.seed) {
+            this.showToast('No seed available', 'error');
+            return;
+        }
+
+        // Populate seed in modal
+        document.getElementById('recovery-seed').value = this.currentWallet.seed;
+        
+        // Reset confirmation checkbox
+        document.getElementById('seed-confirmed').checked = false;
+        document.getElementById('confirm-seed-saved').disabled = true;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('seedModal'));
+        modal.show();
+    }
+
+    hideSeedModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('seedModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Show wallet dashboard after seed is confirmed
+        this.showWalletDashboard();
+        this.startRefreshTimer();
+    }
+
+    toggleSeedConfirmation(checked) {
+        document.getElementById('confirm-seed-saved').disabled = !checked;
     }
 }
 

@@ -64,6 +64,55 @@
             </div>
         </div>
 
+        <!-- Seed Display Modal -->
+        <div class="modal fade" id="seedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Important: Save Your Recovery Seed
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning seed-warning">
+                            <strong>Warning:</strong> This seed phrase is the only way to recover your wallet. 
+                            Write it down and store it safely. Never share it with anyone.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Your Recovery Seed (64 characters):</strong></label>
+                            <div class="input-group">
+                                <input type="text" id="recovery-seed" class="form-control font-monospace" readonly>
+                                <button class="btn btn-outline-primary" onclick="copyToClipboard('recovery-seed')">
+                                    <i class="fas fa-copy me-1"></i>
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="seed-confirmed">
+                            <label class="form-check-label" for="seed-confirmed">
+                                I have written down my recovery seed in a safe place
+                            </label>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Tip:</strong> You can use this seed later by clicking "Import Wallet" to restore your account.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="confirm-seed-saved" class="btn btn-success" disabled>
+                            <i class="fas fa-check me-2"></i>
+                            I Have Saved My Seed
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Wallet Dashboard (Hidden by default) -->
         <div id="wallet-dashboard" class="d-none">
             <!-- Wallet Info -->
@@ -92,10 +141,20 @@
                                     <span id="wallet-balance">0.00</span> FBA
                                 </div>
                             </div>
-                            <button id="faucet-btn" class="btn btn-warning">
-                                <i class="fas fa-faucet me-2"></i>
-                                Get Test Coins (Faucet)
-                            </button>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <button id="faucet-btn" class="btn btn-warning w-100">
+                                        <i class="fas fa-faucet me-2"></i>
+                                        Get Test Coins
+                                    </button>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <button id="show-seed-btn" class="btn btn-outline-info w-100">
+                                        <i class="fas fa-key me-2"></i>
+                                        Show Seed
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -12,8 +12,11 @@ wallet_bp = Blueprint('wallet', __name__)
 def generate_wallet():
     """Generate a new wallet keypair and address"""
     try:
-        # Generate keypair
-        keypair = KeyManager.generate_keypair()
+        # Generate seed first
+        seed = KeyManager.generate_seed()
+        
+        # Generate keypair from seed
+        keypair = KeyManager.keypair_from_seed(seed)
         
         # Generate address from public key
         address = AddressManager.public_key_to_address(keypair['public_key'])
@@ -21,6 +24,7 @@ def generate_wallet():
         return jsonify({
             'success': True,
             'data': {
+                'seed': seed,
                 'private_key': keypair['private_key'],
                 'public_key': keypair['public_key'],
                 'address': address

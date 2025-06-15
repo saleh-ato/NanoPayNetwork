@@ -119,3 +119,49 @@
     border-color: var(--bs-primary);
     filter: brightness(110%);
 }
+
+/* Seed modal styling */
+#seedModal .modal-header {
+    border-bottom: 2px solid #ffc107;
+}
+
+#seedModal .font-monospace {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    background-color: var(--bs-gray-100);
+    border: 2px solid var(--bs-warning);
+}
+
+#seedModal .alert-warning {
+    border-left: 4px solid #ffc107;
+}
+
+#seedModal .alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.seed-warning {
+    animation: subtle-pulse 3s infinite;
+}
+
+@keyframes subtle-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Checkbox styling for seed confirmation */
+#seed-confirmed:checked + label {
+    color: var(--bs-success);
+    font-weight: 600;
+}
+
+/* Show seed button styling */
+#show-seed-btn {
+    border: 2px dashed var(--bs-info);
+}
+
+#show-seed-btn:hover {
+    background-color: var(--bs-info);
+    color: white;
+    border-style: solid;
+}
